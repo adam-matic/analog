@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="src/svg.js"></script>
+        <script src="src/svg.draggable.js"></script>
+        
+        <title>Analog Computer</title>
+    </head>
+<body>
+    
+    <div id="diagram"></div>
+    
+    
+    <script>
+        
+        var w = 600, h = 400
+        var draw = SVG()
+            .addTo('#diagram')
+            .viewbox(0, 0, w, h)
+        
+        
+        r1 = draw.rect(50,50,50,50)
+            .fill("#fff")
+            .stroke({width:1, color:"#000"})
+            .draggable()
+    
+        r2 = draw.rect(50,50)
+            .move(150, 0)
+            .fill("#fff")
+            .stroke({width:1, color:"#000"})
+            .draggable()
+    
+        port = draw.circle(20)
+            .move(45, 20)
+            .fill("#aaa")
+            .draggable()
+        
+        x = function (o) {return o.attr("cx")}
+        y = function (o) {return o.attr("cy")}
+        
+        port.startpos = [x(port), y(port)]
+        
+        r1.ports = []
+        line = draw.line(x(port), y(port), x(port), y(port)).stroke({ width: 3, color:"#f00" }).fill("#f00")
+        
+        r1.ports.push(port)
+        
+        port.on("dragmove", (e) => {            
+            line.plot([port.startpos, [x(port), y(port)]]) 
+        })
+        
+        r1.on("dragmove", (e) => {            
+            ports[0].move(e.node.clientX)
+        })
+        
+    </script>
+    
+    </body>
+</html>

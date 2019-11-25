@@ -1,25 +1,138 @@
 var nodes = []
 var svg = null;
-window.onload = function () {
-    console.log("loaded!!")
 
-    var el = function(id) {
-        return document.getElementById(id)
-    };
+
+
+function make (element, attr, parent) {
+    let svgNS = "http://www.w3.org/2000/svg";
+    let svg_element = document.createElementNS(svgNS, element);
+    for (let i in attr) svg_element.setAttributeNS(null, i, attr[i]);
+    if (parent) parent.appendChild(svg_element)
+    return svg_element;
+};
+
+
+
+class Node {
+    constructor (svg, body, text) {
+        this.w = svg.getAttributeNS(null, "width")
+        this.h = svg.getAttributeNS(null, "height")
     
-    var toolbox = el("toolbox")
-    var diagram = el("diagram")
-    svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttributeNS(null, "viewBox", "0 0 500 500");
-    var svgNS = svg.namespaceURI;
-    diagram.appendChild(svg)
+        this.layer0 = document.getElementById("layer0") ||  make('g', {id: "layer0"}, svg)
+        this.layer1 = document.getElementById("layer1") ||  make('g', {id: "layer1"}, svg)
+        this.layer2 = document.getElementById("layer2") ||  make('g', {id: "layer2"}, svg)
+        
+        let body_prop = {
+            x: 150, y:50,
+            width: 50, height: 50,
+            fill: "blue", stroke:"#000", 
+            id:"rect"+text, 
+            type: "box"}
+        
+        this.body = make('rect', body_prop, this.layer1)
+        this.input_ports = []
+        
+        let out_port_prop = {
+            cx: body_prop.x + body_prop.width, 
+            cy: body_prop.y + body_prop.height, 
+            r: 10,
+            fill: "#0c0", 
+            stroke: "black", 
+            type: "port" 
+        }
+        
+        this.output_port = make('circle', out_port_prop, this.layer2)
+        
+        var output_wire = make('line', {
+            x1: body_prop.x + body_prop.width,
+            y1: body_prop.y + body_prop.height,
+            x2: body_prop.x + body_prop.width,
+            y2: body_prop.y + body_prop.height,
+            fill: "none",
+            stroke: "black",
+            "stroke-width": 3,
+            type: "wire"
+        })
+
+
+        var CTM = svg.getScreenCTM()
+        
+        function mouse_pos(evt) {
+            var x = (evt.clientX - CTM.e) / CTM.a
+            var y = (evt.clientY - CTM.f) / CTM.d
+            return {x: x, y:y }
+        }
+        
+        var prev_mouse = null;
+        
+        function mouse_down_listener(obj) {
+            return function (event) {
+                document.addEventListener("mousemove", move.bind(obj), true)
+            }
+        }
+        
+        this.body.addEventListener("mousedown",  mouse_down_listener (this.body))
+        this.output_port.addEventListener("mousedown",  mouse_down_listener (this.output_port))
+        
+        function move (event) {            
+            console.log(event)
+        }
+
+        
     
-    var layer0 = document.createElementNS(svgNS,'g');
-    var layer1 = document.createElementNS(svgNS,'g');
-    var layer2 = document.createElementNS(svgNS,'g');
-    svg.appendChild(layer0)
-    svg.appendChild(layer1)
-    svg.appendChild(layer2)
+    }
+    
+}   
+
+
+var Diagram = function (bounding_div) {
+    var bound_div = document.getElementById(bounding_div);
+    var toolbox_div = document.createElement("div");
+    var t_attrs = {id: "toolbox", 
+                   style:"float:left; border:1px solid red; width:100px; height:600px;",
+                   innerHTML: "Toolbox"}
+    for (a in t_attrs) toolbox_div.setAttribute(a, t_attrs[a])
+    
+    var diagram_div = document.createElement("div");
+    var d_attrs = {id: "diagram", 
+                   style:"float:left; border:1px solid black; width:450px; height:600px;",
+                   innerHTML: "Diagram"}
+    for (a in d_attrs) diagram_div.setAttribute(a, d_attrs[a])
+    
+    bound_div.appendChild(toolbox_div)
+    bound_div.appendChild(diagram_div)
+
+    
+    var svg = make("svg", {viewBox: "0 0 500 500"});
+    
+    diagram_div.appendChild(svg)
+    
+    var CTM = svg.getScreenCTM()
+    
+    function mouse_pos(evt) {
+        var x = (evt.clientX - CTM.e) / CTM.a
+        var y = (evt.clientY - CTM.f) / CTM.d
+        return {x: x, y:y }
+    }
+
+        
+    return {
+        make:make,
+        svg: svg,
+        toolbox: toolbox_div,
+        mouse_pos: mouse_pos,
+    }
+}
+
+
+window.onload = function () {
+    var dia = Diagram("div1")
+    d = dia
+    var layer0 = make('g', {id:"layer0"}, dia.svg);
+    var layer1 = make('g', {id:"layer0"}, dia.svg);
+    var layer2 = make('g', {id:"layer0"}, dia.svg);
+    
+    n = new Node(dia.svg)
     
     
     // fill toolbox
@@ -29,55 +142,46 @@ window.onload = function () {
         btn.id = `box${i}`
         btn.style = "width:80px; margin:3px;"
         btn.innerHTML = `box${i}`
-        
-
         btn.onclick = function(event) {
             console.log(`clicked button ${this.num}`);
             var node = add_box("ABCDEFGHIJKLM"[this.num])
             nodes.push(node)            
         }
-        toolbox.appendChild(btn)
+        dia.toolbox.appendChild(btn)
     }
     
-    
-    function getMousePos(evt) {
-        var CTM = svg.getScreenCTM()
-        return {
-            x: (evt.clientX - CTM.e) / CTM.a,
-            y: (evt.clientY - CTM.f) / CTM.d
-        }
-    }
-    
-   
-    
+        
     function add_box(text) {
-        
-        
-        var rect = document.createElementNS(svgNS,'rect');
-        var attrs = {
-            "x": 50, 
-            "y":50,
-            "width":50,
-            "height":50,
-            "fill": "white",
-            "stroke":"#000", 
+        var rect = dia.make('rect', {
+            x: 50, y:50,
+            width: 50, height: 50,
+            fill: "white", stroke:"#000", 
             id:"rect"+text, 
-            type: "box",
-            position: "absolute",
-            "z-index":5 }
-        for (let k in attrs) rect.setAttributeNS(null, k, attrs[k]);
+            type: "box"})
+                            
         layer1.appendChild(rect);
 
         var selectedElement = null
         var drop_target = null
         
-        var x = parseFloat(rect.getAttributeNS(null, "x"))
-        var w = parseFloat(rect.getAttributeNS(null, "width"))
-        var y = parseFloat(rect.getAttributeNS(null, "y"))
-        var h = parseFloat(rect.getAttributeNS(null, "height"))
+        function get(svg_element, prop) { 
+            if (["type"].includes(prop)) {
+                return svg_element.getAttributeNS(null, prop)
+            } else 
+                return svg_element[prop].baseVal.value 
+        }
         
-        var output_wire = document.createElementNS(svgNS, 'line')
-        var wire_attrs = {
+        function set(svg_element, prop, new_value) { 
+            svg_element.setAttributeNS(null, prop, new_value)
+        }
+        
+        
+        var x = get(rect, "x")
+        var w = get(rect, "width")
+        var y = get(rect, "y")
+        var h = get(rect, "height")
+        
+        var output_wire = dia.make('line', {
             x1: x + w/2,
             y1: y + h/2,
             x2: x + w,
@@ -85,71 +189,62 @@ window.onload = function () {
             fill: "none",
             stroke: "black",
             "stroke-width": 3,
-            
-            "z-index":0,
             type: "wire"
-        }
+        })
 
-        for (let k in wire_attrs) output_wire.setAttributeNS(null, k, wire_attrs[k]);
         layer0.appendChild(output_wire)
 
-        var port = document.createElementNS(svgNS, 'circle')
-        var cattrs = {
+        var port = dia.make('circle', {
             cx: x + w, 
             cy: y + h/2, 
             r: 10,
-            position: "absolute",
             fill: "#c00", 
             stroke: "black", 
-            "z-index": "1000",
-            type: "port" }
+            type: "port" })
         
-        for (let k in cattrs) port.setAttributeNS(null, k, cattrs[k]);
         layer2.appendChild(port);
         
         port.wire = output_wire;
+        port.source_rect = rect;
         rect.output_wire = output_wire;
+        output_wire.port = port
+        var prev_mouse = null
         
-        rect.addEventListener("mousedown",  function (event) {
-            document.addEventListener("mousemove", move.bind(rect), true)
-            selectedElement = event.target
-            var coord = getMousePos(event)
-            for (let e of this.connected_elements.concat(selectedElement)) {
-                let [ex, ey] = get_pos(e)
-                e.offsetX =  coord.x - ex;
-                e.offsetY =  coord.y - ey;
+        function mouse_down_listener(obj) {
+            return function (event) {
+                selectedElement = event.target
+                document.addEventListener("mousemove", move.bind(obj), true)
+                var coord =  dia.mouse_pos(event)
+                prev_mouse = coord
+                let [ex, ey] = get_pos(selectedElement)
+                selectedElement.offsetX =  coord.x - ex;
+                selectedElement.offsetY =  coord.y - ey;
             }
-        })
+        }
         
-        port.addEventListener("mousedown",  function (event) {
-            selectedElement = event.target
-            document.addEventListener("mousemove", move.bind(port), true)
-            var coord = getMousePos(event)
-            selectedElement.offsetX =  coord.x - parseFloat(selectedElement.getAttributeNS(null, "cx"));
-            selectedElement.offsetY =  coord.y - parseFloat(selectedElement.getAttributeNS(null, "cy"));
-            for (let e of this.connected_elements.concat(selectedElement)) {
-                let [ex, ey] = get_pos(e)
-                e.offsetX =  coord.x - ex;
-                e.offsetY =  coord.y - ey;
-            }
-        })
-
+        rect.addEventListener("mousedown",  mouse_down_listener (rect))
+        port.addEventListener("mousedown",  mouse_down_listener (port))
 
         function move_to(element, x, y) {
             var moves = {
                 'port': function (element, x, y) {
-                    element.setAttributeNS(null, "cx", x )
-                    element.setAttributeNS(null, "cy", y )
+                    set(element, "cx", x )
+                    set(element, "cy", y )
                     
+                    
+                    element.wire.setAttributeNS(null, "x2", x)
+                    element.wire.setAttributeNS(null, "y2", y)
+                    
+                    if (selectedElement != element) return;
                     for (let n of nodes) {
-                        let [xn,yn] = get_pos(n)
-                        let [wn, hn] =  [parseFloat(n.getAttributeNS(null, "width")),
-                                         parseFloat(n.getAttributeNS(null, "height"))]
+                        //console.log(n)
+                        let [xn, yn] = get_pos(n)
+                        let [wn, hn] =  [get(n, "width"), get(n, "height")]
                         //console.log(x, y, xn, yn, wn, hn)
                         if ((x > xn) && (x < (xn + wn)) && (y > yn) && (y < (yn + hn))) {
                             n.flag = "+";
                             drop_target = n
-                            n.setAttributeNS(null, "fill", "#f05")
+                            set(n, "fill", "#f05")
                             
                         } else {
                             if (n.flag === '+') {
@@ -158,13 +253,15 @@ window.onload = function () {
                                 drop_target = null;
                             }
                         }
-        
                     }
                     
                     },
-                'box': function (element, x, y) {
-                    element.setAttributeNS(null, "x", x )
-                    element.setAttributeNS(null, "y", y )
+                'box': function (e, x, y) { 
+                    set(e, "x", x )
+                    set(e, "y", y )
+                    set(e.output_wire, "x1", x + w/2)
+                    set(e.output_wire, "y1", y + h/2)
+                    
                 },
                 'wire': function(element, x, y) {   
                     var type = selectedElement.getAttributeNS(null, "type")
@@ -177,39 +274,21 @@ window.onload = function () {
                     }
                 },
                 text: function (element, x, y) {
-                    element.setAttributeNS(null, "x", x )
-                    element.setAttributeNS(null, "y", y )
+                    set(element, "x", x )
+                    set(element, "y", y )
                 }
             }
-                
-            moves[element.getAttributeNS(null, "type")](element, x, y)
+            //console.log(element.getAttributeNS(null, "type"))    
+            moves[get(element,"type")](element, x, y)
         }
         
         function get_pos(element) {
-            var coords = {
-                'port': function (element) {
-                    return [parseFloat(element.getAttributeNS(null, "cx")),
-                            parseFloat(element.getAttributeNS(null, "cy"))]
-                    },
-                'box': function (element) {
-                    return [parseFloat(element.getAttributeNS(null, "x")),
-                            parseFloat(element.getAttributeNS(null, "y"))]
-                    },
-                'wire': function (element) {
-                    var type = selectedElement.getAttributeNS(null, "type")
-                    if (type === "box") {
-                          return [parseFloat(element.getAttributeNS(null, "x1")),
-                                  parseFloat(element.getAttributeNS(null, "y1"))]
-                    } else if (type === 'port') {
-                          return [parseFloat(element.getAttributeNS(null, "x2")),
-                                  parseFloat(element.getAttributeNS(null, "y2"))]
-                        
-                    } else {console.log("agahahah"); return [0,0]}
-                }
-                
-                }
-            coords.text = coords.box
-            return coords[element.getAttributeNS(null, "type")](element)
+            return {
+                port: function (e) { return [get(e, "cx"), get(e, "cy")] },
+                box : function (e) { return [get(e, "x"),  get(e, "y")] }, 
+                text: function (e) { return [parseFloat(e.getAttributeNS(null, "x")), 
+                                             parseFloat(e.getAttributeNS(null, "y"))] }, 
+            } [get(element, "type")](element)
         }
         
         
@@ -217,9 +296,13 @@ window.onload = function () {
         function move (event) {            
             if (selectedElement) {
                 event.preventDefault()
-                var coord = getMousePos(event)
+                var coord = dia.mouse_pos(event)
+                var dx = coord.x - prev_mouse.x;
+                var dy = coord.y - prev_mouse.y;
+                prev_mouse = coord;
                 for (let e of [].concat(selectedElement, selectedElement.connected_elements)) {
-                    move_to(e, coord.x - e.offsetX, coord.y - e.offsetY)
+                    let [x,y] = get_pos(e)
+                    move_to(e, x + dx, y + dy)
                     }
                 }
             }
@@ -232,13 +315,27 @@ window.onload = function () {
             document.removeEventListener("mousemove", move, true);
         })
         
+        
+        function arrayRemove(arr, value) {
+           return arr.filter(function(ele){
+               return ele != value;
+            });
+        }
+
         port.addEventListener("mouseup",function (event) {
             console.log("port up")
             if (drop_target) {
-                port.setAttributeNS(null, "fill", "white")
-                drop_target.connected_elements.push(port)
+                //port.setAttributeNS(null, "fill", "white")
+                
+                port.connected = true
+                port.connected_to = drop_target
+                if (!(drop_target.connected_elements.includes(port))) {
+                    drop_target.connected_elements.push(port);
+                    port.source_rect.connected_elements = arrayRemove( port.source_rect.connected_elements, port )
+                }
                 drop_target = null
             }
+            port.source_rect.connected_elements = arrayRemove( port.source_rect.connected_elements, port )
             selectedElement = null;
             document.removeEventListener("mousemove", move, true);
         
@@ -260,23 +357,22 @@ window.onload = function () {
              this.setAttributeNS(null, "fill", "#f00");  
         })
         
-        port.addEventListener("mouseleave",  function () { 
-            this.setAttributeNS(null, "fill", "#c00")
+        port.addEventListener("mouseleave",  function () {
+            if (this.connected) {
+                set(this, "fill", "gray")
+            } else {
+                this.setAttributeNS(null, "fill", "#c00")
+            }
         })
         
-        var t = document.createElementNS(svgNS, 'text')
-        
-        var tattrs = {"x": 50 + 15, "y":50 +35, "font-size":25,
-                     "pointer-events": "none", 'type': "text"}
-        
-        for (let k in tattrs) t.setAttributeNS(null, k, tattrs[k]);
-    
+        var t = dia.make('text', {x: 50 + 15, y:50 +35, "font-size":25,
+                     "pointer-events": "none", type: "text", 
+                      style:'-webkit-touch-callout: none;-webkit-user-select: none;-khtml-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;'})
         t.innerHTML = text
-        t.setAttribute('style', '-webkit-touch-callout: none;-webkit-user-select: none;-khtml-user-select: none;-moz-user-select: none;-ms-user-select: none;user-select: none;');
  
-        rect.connected_elements = [t, output_wire];
-        port.connected_elements = [output_wire];
-        output_wire.connected_elements = []
+        rect.connected_elements = [t, port];
+        port.connected_elements = [];
+        output_wire.connected_elements = [port];
         layer1.appendChild(t)
         //svg.appendChild(g);        
         

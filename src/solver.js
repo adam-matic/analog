@@ -31,7 +31,7 @@ p = console.log
 p(i.o)
 p(i.no)
 
-advance(i)
+//advance(i)
 
 p(i.o)
 p(i.no)

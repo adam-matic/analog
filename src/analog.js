@@ -7,7 +7,7 @@ LinePlot = draw2d.shape.diagram.Sparkline.extend({
         this.setRadius(5);
         this.createPort("input");
         this.startTimer(100);
-        this.setDimension(250,50);
+        this.setDimension(250, 50);
     },
     
     setData:function( data) {
@@ -18,12 +18,6 @@ LinePlot = draw2d.shape.diagram.Sparkline.extend({
         this.repaint();
     },
     
-    /**
-     * @method
-     * 
-     * Update the chart with the current value of the input port.
-     * 
-     */
     OldOnTimer:function() {
          var port = this.getInputPort(0);
          var value=port.getValue();
@@ -37,30 +31,71 @@ LinePlot = draw2d.shape.diagram.Sparkline.extend({
 
 window.onload = function () {
     
+    var maindiv = document.getElementById("maindiv");
+    
+    var toolbox_div = document.createElement("div");
+    var t_attrs = {id: "toolbox", 
+                   style:"float:left; border:1px solid red; width:100px; height:600px;",
+                   innerHTML: "Toolbox"}
+    for (a in t_attrs) toolbox_div.setAttribute(a, t_attrs[a])
+    var diagram_div = document.createElement("div");
+    var d_attrs = {id: "diagram", 
+                   style:"float:left; border:1px solid black; width:600px; height:600px;",
+                   innerHTML: "Diagram"}
+    for (a in d_attrs) diagram_div.setAttribute(a, d_attrs[a])
+    
+    maindiv.appendChild(toolbox_div)
+    maindiv.appendChild(diagram_div)
+
+    
+    
+    
     var canvas = new draw2d.Canvas("diagram", 600, 600)
-    var opamp = new draw2d.shape.analog.OpAmp()
+    
+    var program_graph = {
+        "dt" : 0.01,
+        "total_time": 10        
+    };
+    
+    
+    var elements = {
+        "const" : function (x, y, v=0) {
+            var b = new draw2d.shape.basic.Rectangle({x:x, y:y});
+            b.createPort("output")
+            b.cre
+            b.installEditPolicy(new draw2d.policy.figure.GlowSelectionFeedbackPolicy());
+            return b
+          },
+        
+        "summer": function (x, y) {
+            var box = new draw2d.shape.node.Start({x:x, y:y});
+            box.installEditPolicy(new draw2d.policy.figure.GlowSelectionFeedbackPolicy());
+            return box
+          }
+    }
+    
+    
+    Object.keys(elements).forEach(function (e, i) {
+        var btn = document.createElement("button")
+        btn.num = i
+        btn.element = e
+        btn.id = `box${i}`
+        btn.style = "width:80px; margin:3px;"
+        btn.innerHTML = e
+        btn.onclick = function(event) {
+            var node = 
+            canvas.add(elements[e] () )
+        }
+        toolbox_div.appendChild(btn)
+    })
+    
+    
+    
     
     var testData = [];
     for(var i=0;i<100;i++) {
        testData.push(Math.floor(Math.random() * 100));
     }
-    var plot1 = new LinePlot({width:200, height:80});
-    plot1.setData(testData);
-    canvas.add( plot1 ,100, 60);
-    canvas.add(opamp, 150, 150)
 
-    var sine = new draw2d.shape.node.Start({x:50, y:250});
-    canvas.add(sine)
-    
-    textFigure = new draw2d.shape.basic.Text({
-        text:"I am label",
-        fontFamily:"Curier New",
-        fontSize: 14,
-        x:10, y:10
-    });
-    textFigure.createPort("output")
-        
-    textFigure.setDeleteable(false)
-    
-    canvas.add(textFigure);
+
 }

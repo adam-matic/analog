@@ -12,6 +12,16 @@ function make (element, attr, parent) {
 };
 
 
+function Nnode (name) {
+    this.name = name;
+    this.elements = [];
+
+    this.addElement = function () {
+            
+    }
+}
+
+
 
 class Node {
     constructor (svg, body, text) {
@@ -31,6 +41,25 @@ class Node {
         
         this.body = make('rect', body_prop, this.layer1)
         this.input_ports = []
+        
+        
+        let input_prop = {
+            x: 150, y:50,
+            width: 50, height: 50
+        }
+        
+        this.inp = make("foreignObject", input_prop, this.layer1)
+       
+        var tinp = document.createElement("button")
+        tinp.style = "width:80px; margin:3px; height: 30px;"
+        //tinp.setAttribute("width", "400")
+        //tinp.setAttribute("height", "50")
+             
+        tinp.onclick = function () {
+            console.log("i")
+        }
+        this.inp.appendChild(tinp)
+        
         
         let out_port_prop = {
             cx: body_prop.x + body_prop.width, 
@@ -75,7 +104,7 @@ class Node {
         this.output_port.addEventListener("mousedown",  mouse_down_listener (this.output_port))
         
         function move (event) {            
-            console.log(event)
+            //console.log(event)
         }
 
         
@@ -154,7 +183,7 @@ window.onload = function () {
     function add_box(text) {
         var rect = dia.make('rect', {
             x: 50, y:50,
-            width: 50, height: 50,
+            width: 50, height: 50, 
             fill: "white", stroke:"#000", 
             id:"rect"+text, 
             type: "box"})

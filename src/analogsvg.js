@@ -4,6 +4,53 @@ class Wire {
     }
 }
 
+
+class ContextMenu {
+    constructor (e, params, update_params) {
+        this.params = params
+        e.preventDefault();
+             
+        let pdiv = document.getElementById("diagram");
+        let c = document.createElement("div");
+
+        c.style.background = "#ddd"
+        c.style.border = "1px solid black";
+        c.style.height="100px"; 
+        c.style.width="200px"; 
+        c.style.position = "absolute";
+        c.style.left=`${e.clientX}px`;
+        c.style.top=`${e.clientY}px`;
+        
+
+        for (let p in params) {
+            let name = document.createElement("p");
+            name.innerHTML = p + " = ";
+            name.style.display = "inline-block"
+            let b = document.createElement("input");
+            b.setAttribute("type", "number")
+            b.setAttribute("value", params[p])
+            b.onkeyup = (k) => {
+                params[p] = b.valueAsNumber
+                console.log(params)
+                update_params()
+                if (k.key=="Enter") button.click()
+            }
+            b.onchange = () => { b.onkeyup({key:''}) }
+            c.appendChild(name)
+            c.appendChild(b);   
+        }
+
+        let button = document.createElement("button");
+        button.innerHTML = "close";     
+        button.addEventListener("click", (e) => {            
+            pdiv.removeChild(c)
+        })
+        
+        c.appendChild(button)
+        pdiv.appendChild(c);      
+    }
+}
+
 class Node {
     constructor(draw, pos) {
         let [x, y] = pos || [0,0]
@@ -23,10 +70,17 @@ class Node {
         
         this.t = draw.text("const")
             .fill("#fff")
-            .move(x+5, y+1)
+            .move(x+5, y+1)        
         
-        this.v = draw.text("0.0").fill("#aaa").move(x+10, y + 20)
-        
+        this.params = {
+            v : 0
+        }
+
+        let num = this.params.v.toFixed(2)
+        this.v = draw.text(num)
+                .fill("#aaa")
+                .x(x+10).y(y+20)
+                
         
         this.g.add(this.r)
               .add(this.p)
@@ -35,39 +89,18 @@ class Node {
               .draggable()
         
         
-        this.g.on("dragmove", (e) => {            
-            console.log("dragging node", this)
-        })
+        //this.g.on("dragmove", (e) => {  //console.log("dragging node", this)   })
         
+       let update_params = () => {
+            let num = this.params.v.toFixed(2)
+            this.v.node.firstChild.innerHTML = num
+        }
+
         this.g.on("contextmenu", (e) => {
+            new ContextMenu(e, this.params, update_params)
             
-            e.preventDefault();
-            
-            
-            let pdiv = draw.node.parentElement;
-            let c = document.createElement("div");
-            c.style.border = "1px solid black";
-            //c.style.x = "10"; c.style.y = "50";
-            c.style.height="100px"; 
-            c.style.width="200px"; 
-            c.style.position = "absolute";
-            c.style.left=`${e.clientX}px`;
-            c.style.top=`${e.clientY}px`;
-            
-            let b = document.createElement("button");
-            b.innerHTML = "close";
-            //b.style.position = "absolute";
-            //b.style.left=`${e.clientX+20}px`;
-            //b.style.top=`${e.clientY + 20}px`;
-            
-            b.addEventListener("click", (e) => {
-                pdiv.removeChild(c)
-            })
-            
-            c.appendChild(b)
-            pdiv.appendChild(c);            
         })
-  
+         
         return this.g;
     }
 }
@@ -105,53 +138,22 @@ window.onload = function() {
     
     
     var nodes = {
-        const : {
-            value: 0,
-            out_ports: 1,
-            fill: "#fff",
-            stroke: "#000"
-            },
-        add : {
-            value: 0,
-            out_ports: 1,
-            text: "+"
-            },
-        plot: {
-            value: 0,
-            out_ports: 0
-        }       
+        const : Node,
+        add : Node,
+        plot: Node
     }
     
     
     for (let a in nodes) {
         let btn = document.createElement("button")
-        btn.style = "width:80px; margin:3px;"
+        btn.style = "width:80px; margin:8px;"
         btn.innerHTML = a
         btn.onclick = function(event) {
-            var node = new node_factory(nodes[a])
+            var node = new nodes[a](draw)
         }
         toolbox_div.appendChild(btn)
     }
-        
-    
-    class node_factory {
-        constructor (n) {
-            this.n = n
-            
-            this.r1 = draw.rect(50,50,150,150)
-                .draggable()
-                .fill(n.fill || "#000")
-                .stroke(n.stroke || "#fff")
-            
-            console.log(r1.x())
-            this.outport = draw.circle(20, 20, 50, 50).draggable()
-            
-            this.outport.on("dragmove", (e) => {            
-                line.plot([port.startpos, [x(port), y(port)]]) 
-            })        
-        
-        }
-    }
+
     
     
     var draw = SVG()

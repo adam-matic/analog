@@ -8,6 +8,9 @@ function make (element, attr, parent) {
     let svg_element = document.createElementNS(svgNS, element);
     for (let i in attr) svg_element.setAttributeNS(null, i, attr[i]);
     if (parent) parent.appendChild(svg_element)
+
+    svg_element.draggable = true
+    svg_element.ondrag = e=> console.log(e)
     return svg_element;
 };
 
@@ -171,11 +174,14 @@ window.onload = function () {
         btn.id = `box${i}`
         btn.style = "width:80px; margin:3px;"
         btn.innerHTML = `box${i}`
+        btn.draggable = true
         btn.onclick = function(event) {
             console.log(`clicked button ${this.num}`);
             var node = add_box("ABCDEFGHIJKLM"[this.num])
             nodes.push(node)            
         }
+
+        btn.ondrag = e => console.log(e);
         dia.toolbox.appendChild(btn)
     }
     

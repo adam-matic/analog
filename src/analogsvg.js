@@ -1,64 +1,11 @@
-class Wire {
-    constructor(draw, a, b) {
-        this.a = a;
-
-        this.p = draw.circle()
-            .size(20, 20)
-            .draggable( );
-
-        this.p.wire = this;
-
-        draw.layer2.add(this.p)
-
-
-        this.draw_port_home = () => {
-            this.connected = false;
-            var px = this.a.cx()+30;
-            var py = this.a.cy();
-            this.b = this.p;
-            this.p.cx(px).cy(py);
-        }
-       
-        if (b === undefined) this.draw_port_home()
-
-        this.p.on("dragmove", (e) => {
-            draw.layer0.add(this.p)
-            draw.portmove = true;
-            draw.moved_port = this.p;
-            this.move_a(e, true)
-        })
-
-
-        this.p.on("dragend", (e) => {
-            if (this.connected == false) {
-                this.draw_port_home()
-                this.w.plot(this.a.cx(), this.a.cy(), this.b.cx(), this.b.cy())
-            } 
-            draw.layer2.add(this.p)
-            draw.portmove = false;
-            draw.moved_port = null;
-
-        });
-
-        this.w = draw.line(this.a.cx(), this.a.cy(), this.b.cx(), this.b.cy())
-        this.w.stroke({width:3, color:"#888"})
-        draw.layer0.add(this.w)
-    }
-
-    move_a(e, portmove) {
-        if (this.connected || portmove) {
-            this.w.plot(this.a.cx(), this.a.cy(), this.b.cx(), this.b.cy())
-        } else {
-            let dx = e.detail.event.movementX;
-            let dy = e.detail.event.movementY;
-            this.w.dmove(dx, dy)
-            this.p.dmove(dx, dy)
-        }
-    }
-}
 
 class ContextMenu {
     constructor (e, params, update_params) {
+        let target_node = e.target
+
+        if (target_node.context_opened) return;
+    
+        target_node.context_opened = true
         this.params = params
         e.preventDefault();
              
@@ -92,15 +39,76 @@ class ContextMenu {
         }
 
         let button = document.createElement("button");
-        button.innerHTML = "close";     
+        button.innerHTML = "close"; 
+        button.style.display = "inner-block"    
         button.addEventListener("click", (e) => {            
             pdiv.removeChild(c)
+            target_node.context_opened = false;
         })
         
         c.appendChild(button)
         pdiv.appendChild(c);      
     }
 }
+
+class Wire {
+    constructor(draw, parent_node) {
+        this.parent_node = parent_node;
+        
+        this.port = draw.circle()
+            .size(10, 10)
+            .draggable( );
+
+        this.port.wire = this;
+
+        this.draw_port_home = () => {
+            var px = this.parent_node.r.cx()+30;
+            var py = this.parent_node.r.cy();
+            this.port.cx(px).cy(py);
+        }
+       
+        draw.layer2.add(this.port)
+        this.draw_port_home()
+
+
+        this.port.on("dragstart", e => {
+            draw.layer0.add(this.port)
+            draw.portmove = true;
+            draw.moved_port = this.port;
+        })
+
+        this.port.on("dragmove", e => this.move_a(e, true))
+
+        this.port.on("mouseover", e => this.port.fill("#d00"))
+        this.port.on("mouseout", e => this.port.fill("#000"))
+
+        this.port.on("dragend", (e) => {
+            if (this.parent_node.connected == false) {
+                this.draw_port_home()
+                this.move_a(e, true)
+            } 
+            draw.layer2.add(this.port)
+            draw.portmove = false;
+            draw.moved_port = null;
+        });
+
+        this.wire_line = draw.line(this.parent_node.r.cx(), this.parent_node.r.cy(), this.port.cx(), this.port.cy())
+        this.wire_line.stroke({width:3, color:"#888"})
+        draw.layer0.add(this.wire_line)
+    }
+
+    move_a(e, portmove) {
+        if (this.parent_node.connected || portmove) {
+            this.wire_line.plot(this.parent_node.r.cx(), this.parent_node.r.cy(), this.port.cx(), this.port.cy())
+        } else {
+            let dx = e.detail.event.movementX;
+            let dy = e.detail.event.movementY;
+            this.wire_line.dmove(dx, dy)
+            this.port.dmove(dx, dy)
+        }
+    }
+}
+
 
 class Node {
     constructor(draw, [x, y]=[0, 0]) {
@@ -117,6 +125,7 @@ class Node {
             .fill("#fff")
             .move(x+5, y+1)        
         
+
         this.params = {
             v : 0
         }
@@ -125,11 +134,12 @@ class Node {
         this.v = draw.text(num)
                 .fill("#aaa")
                 .x(x+10).y(y+20);
-        
-        this.g.add(this.r)
-              .add(this.t)
-              .add(this.v)
-              .draggable()
+
+
+        this.t.node.style.pointerEvents =  "none"
+        this.v.node.style.pointerEvents =  "none"
+                
+        this.g.add(this.r).add(this.t).add(this.v).draggable()
         
         draw.layer1.add(this.g)
         draw.layer2.add(this.p)
@@ -141,58 +151,41 @@ class Node {
         }
 
         this.g.on("contextmenu", (e) => {
-            new ContextMenu(e, this.params, update_params)
-            
+            new ContextMenu(e, this.params, update_params)            
         })
         
-        this.w = new Wire(draw, this.r)
+        this.w = new Wire(draw, this)
 
         this.input_connections = []
+        this.connected = false
 
         this.g.on("dragmove", (e) => {
             this.w.move_a(e);
-
             for (let n of this.input_connections) {
                 let dx = e.detail.event.movementX;
                 let dy = e.detail.event.movementY;
-                n.p.dmove(dx, dy)
-                n.move_a(e)
+                n.w.port.dmove(dx, dy)
+                n.w.move_a(e)
             }
         })
     
         this.g.on("mouseover", (e) => {            
             if (draw.portmove)
-                this.r.fill("#f55")
-            
+                this.r.fill("#f55")            
         })
-
 
         this.g.on("mouseout", (e) => {         
             this.r.fill("#555")
         })
 
-        
-        this.g.on("mouseup", (e) => {
-            draw.was_on_g = true
-            if (draw.portmove) {
-                let b = draw.moved_port.wire;
-                if (this.w == b || this.input_connections.includes(b)) {
-                    this.w.draw_port_home()
-                    this.w.connected = false
-                    return;
-                }
-                b.connected = true;
-                b.connected_to = this;
-                this.input_connections.push(b)
-            
-                //e.preventDefault()
-                //e.stopPropagation()
-            }
-        })
-    
-        return this.g;
+
+        this.r.parentNode = this
+   
+        draw.graph.nodes.push(this)
     }
 }
+
+
 
 
 
@@ -203,15 +196,11 @@ window.onload = function() {
     var w = 450, h = 600
     
     var toolbox_div = document.createElement("div");
-    var t_attrs = {id: "toolbox", 
-                   style:"float:left; border:1px solid red; width:100px; height:600px;",
-                   innerHTML: "Toolbox"}
+    var t_attrs = {id: "toolbox", style:"float:left; border:1px solid red; width:100px; height:600px;"}
     for (a in t_attrs) toolbox_div.setAttribute(a, t_attrs[a])
     
     var diagram_div = document.createElement("div");
-    var d_attrs = {id: "diagram", 
-                   style:"float:left; border:1px solid black; width:450px; height:600px;",
-                   innerHTML: "Diagram"}
+    var d_attrs = {id: "diagram", style:"float:left; border:1px solid black; width:450px; height:600px;"}
     for (a in d_attrs) diagram_div.setAttribute(a, d_attrs[a])
     
     var div1 = document.getElementById("div1")
@@ -252,21 +241,49 @@ window.onload = function() {
     draw.layer3 = draw.group()
     
 
-    draw.on("mouseup", e=> {
-        if (draw.was_on_g)  { 
-            draw.was_on_g = false;
-        } else if (draw.portmove) {
-            let a = draw.moved_port.wire
+    draw.on("mouseup", e => {
+        if (!draw.portmove) return;
+    
+        if (e.target.instance.type=="rect")  { 
+            let n = draw.moved_port.wire.parent_node;
+            let t = e.target.instance.parentNode
+            console.log(t)
+            if (t == n) {
+                if (n.connected) n.connected_to.input_connections = n.connected_to.input_connections.filter(v => v != n)
+                n.connected = false;
+                n.connected_to = null;                    
+            } else if (t.input_connections.includes(n)) {
+                // pass
+            } else if (n.connected && n.connected_to != t) {
+                n.connected_to.input_connections = n.connected_to.input_connections.filter(v => v != n)
+                n.connected_to = t;
+                t.input_connections.push(n)
+            } else {
+                n.connected = true;
+                n.connected_to = t;
+                t.input_connections.push(n)
+            }
+        } else  {
+            let a = draw.moved_port.wire.parent_node
             if (a.connected) {
                 let b = a.connected_to
                 b.input_connections = b.input_connections.filter( v => v != a )
                 a.connected_to = null;
                 a.connected = false;
-                a.draw_port_home()
+                a.w.draw_port_home()
             }
         }
     })
 
+    draw.graph = {
+        nodes:[], 
+        edges:[]
+    };
+
+    let dt = 0.01;
+    let total_time = 10; 
+
+    //var timeNode = new TimeNode(diagram_div, draw.graph, dt, total_time)
 
     var nn = new Node(draw, [100, 100]);
     var n2 = new Node(draw, [100, 200]);

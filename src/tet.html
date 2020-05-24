@@ -1,0 +1,80 @@
+<script src ="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.9.1/underscore.js" >  </script>
+<script>
+
+
+
+var anim;
+var c = 0;
+var w = 10, h = 10;
+
+_.repeat = (n, v)  => _.map(_.range(n), () => v)
+
+var game = _.repeat (h, _.repeat(w, "·"))
+
+var games = []
+
+
+
+let my_shape = 'o'
+
+let big_shape = [
+"┌─┐",
+"└─┘" 
+];
+
+let x = 0, y = 0;
+
+window.onkeydown = (k) =>  (k.key in do_key) ? do_key[k.key]() : () => null;
+var do_key = {
+    ArrowRight: () => x = x + 1,
+    ArrowLeft: () => x = x - 1,
+    ArrowDown: () => y = y + 1,
+    ArrowUp: () => y = y - 1
+}
+
+var b;
+
+
+function print_state() {
+    let s = ""
+    for (let i = 0; i < h; i ++) {
+        for (let k = 0; k < 2; k ++) {
+        for (let j = 0; j < w; j ++) {
+                if ( i==y && j == x) 
+                    s += big_shape[k][0] + big_shape[k][1] + big_shape[k][2] 
+                else s += _.repeat(3, game[i][j]).join('')
+            } s += "<br>"
+        } 
+
+    }
+    b.innerHTML = s;
+}
+
+
+function Animacion() {
+    setTimeout(function() {
+        print_state()
+        c += 1; 
+        if (c < 1000) anim = window.requestAnimationFrame(Animacion);
+    }, 33) 
+}
+
+function init() {
+    b = document.createElement("p")
+    b.innerHTML = "start"
+    document.body.appendChild(b)
+    b.style.fontFamily = "monospace"
+    b.style.fontSize = 25
+}
+
+window.onload = function () {
+    init()
+    Animacion()
+}
+
+
+</script>
+
+<body >
+ <p></p>
+</body>

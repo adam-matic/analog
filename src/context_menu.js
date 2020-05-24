@@ -13,33 +13,48 @@ export default class ContextMenu {
 
         c.style.background = "#ddd"
         c.style.border = "1px solid black";
-        c.style.height="100px"; 
-        c.style.width="200px"; 
+        //c.style.height="100px"; 
+        //c.style.width="200px"; 
         c.style.position = "absolute";
         c.style.left=`${e.clientX}px`;
         c.style.top=`${e.clientY}px`;
         
 
         for (let p in params) {
-            let name = document.createElement("p");
-            name.innerHTML = p + " = ";
-            name.style.display = "inline-block"
-            let b = document.createElement("input");
-            b.setAttribute("type", "number")
-            b.setAttribute("value", params[p])
-            b.onkeyup = (k) => {
-                params[p] = b.valueAsNumber
+            let row   = document.createElement("p")
+            let label = document.createElement("label");
+            let input = document.createElement("input");
+
+            label.innerHTML = p + " = ";
+            label.for = "p"+ p
+            
+            input.type  = "number";
+            input.id    =  label.for;
+            input.value = params[p]
+            input.style.textAlign = "right"
+            input.style.width = "100px"
+
+            input.onkeyup = (k) => {
+                params[p] = input.valueAsNumber
                 update_params()
                 if (k.key=="Enter") button.click()
             }
-            b.onchange = () => { b.onkeyup({key:''}) }
-            c.appendChild(name)
-            c.appendChild(b);   
+            input.onchange = () => { input.onkeyup({key:''}) }
+        
+            row.style.margin = "10px"
+            row.appendChild(label);
+            row.appendChild(input);
+            c.appendChild(row)   
         }
+
+        
 
         let button = document.createElement("button");
         button.innerHTML = "close"; 
-        button.style.display = "inner-block"    
+        button.style.margin = "0 auto"
+        c.style.textAlign = "center"
+        
+        
         button.addEventListener("click", (e) => {            
             pdiv.removeChild(c)
             target_node.context_opened = false;

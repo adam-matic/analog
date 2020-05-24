@@ -1,0 +1,35 @@
+todo
+
+
+
+- variable names, how to implement from start
+  - -   for node definition, create space for name, or generate "random"
+  - -   middle of the line when stretched or at output of node
+  - -   make it editable via context menu or direct edit
+
+
+maintaining a graph and a text version of the program
+
+
+port context menu: 1, -1, weight
+port color depending on weight
+constrain port location on the node edge
+
+- generator graphical interface in context menu
+    - drag t1, t2, aplitude, etc..
+
+- plotting
+  - simple line plots of var over time
+  - invisible connections between plot and variable names
+  - resizable
+
+
+- run button
+- later: live run
+
+
+--- GROUPING!!! very important. how to change graphics of elements when they 
+   become a group;
+
+
+   

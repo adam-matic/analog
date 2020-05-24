@@ -1,37 +1,27 @@
-print = console.log
+export default function solver (program_graph) {
 
-function Integrator(init_value=0) {
-    var o = init_value
-    var no = 0
-    var ins = []
-    var hist = []
-    var x = 0
+    window.program_graph = program_graph
     
-    this.step = function () {    
-        x = ins.reduce((s, e)=> s + e.o, 0)        
-        no = o + x 
-    };
+    let duration =  program_graph.time.params.duration;
+    let dt = program_graph.time.params.dt;
+    let total_steps = Math.round(duration / dt)
     
-    return this
+
+    for (let i = 0; i < total_steps; i++) {
+        for (let el in program_graph) {
+            let n = program_graph[el];  
+            n.step()
+            n.advance()
+        }
+
+    }
+
+    let results = {};
+
+    for (let el in program_graph) {
+        let n = program_graph[el];
+        results[el] = n.history;      
+    }
+
+    return results;
 }
-
-//var advance = (e) => {  e.o = e.no; e.hist.push(e.o);};
-
-
-i = Integrator()
-b = {o : 1}
-c = {o : 2}
-
-i.ins = [b, c]
-
-i.step()
-
-p = console.log
-
-p(i.o)
-p(i.no)
-
-//advance(i)
-
-p(i.o)
-p(i.no)

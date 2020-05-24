@@ -2,7 +2,7 @@ import Port from './port.js'
 import ContextMenu from './context_menu.js'
 
 export default class Node {
-    constructor(options, position) { 
+    constructor(options, position, output_name) { 
         options = options || {}
         position = position || {}
         options.width  = options.width || 50;
@@ -13,9 +13,13 @@ export default class Node {
         
         this.no_inputs_allowed = options.no_inputs_allowed ;
         this.no_outputs = options.no_outputs;
-
         
-        this.params = options.params || {}
+        this.computation = options.computation || class { constructor () {} };
+
+        this.params =  {... options.params} || {}
+        
+        console.log(this.params)
+
         let draw = this.draw
 
         this.g = draw.group()        
@@ -27,21 +31,30 @@ export default class Node {
             .radius(5);
         
         this.t = draw.text(this.title).fill("#fff").move(options.x+5, options.y+1);
-
         this.t.node.style.pointerEvents =  "none"
+        
+        let wmax = this.t.node.firstChild.getComputedTextLength()
+
         this.g.add(this.r).add(this.t)
 
         this.param_texts = {}
-        let y0 = 20;
+        let y0 = 25;
         for (let p in this.params) {
             let num = p + ":" + this.params[p].toFixed(2)
-            let v = draw.text(num).fill("#aaa").x(options.x+5).y(options.y+y0)
+            let v = draw.text(num).fill("#aaa").x(options.x+10).y(options.y+y0)
             v.font({size:12})
             v.node.style.pointerEvents =  "none"
+            wmax = Math.max(wmax, v.node.firstChild.getComputedTextLength())
             this.param_texts[p] = v;
             this.g.add(v)
             y0 += 15;
         }
+
+        
+        this.r.width(  Math.max(50, 1.3 * wmax))
+        this.r.height( Math.max(50, y0 + 10  ) )
+
+        //this.r.width(this.t.width() + 10)
         this.g.draggable()
         draw.layer1.add(this.g)
         this.g.on("contextmenu", (e) =>  new ContextMenu(e, this.params, this.update_params))
@@ -50,7 +63,10 @@ export default class Node {
         this.input_connections = []
         this.connected = false
 
-        if (!this.no_outputs) this.port = new Port(this)
+        if (!this.no_outputs) {
+            this.output_name = output_name || this.draw.generate_name()
+            this.port = new Port(this)
+        }
 
         this.g.on("dragstart", e => {
             if (this.no_outputs) return;
@@ -77,8 +93,6 @@ export default class Node {
         this.g.on("mouseout", e => { this.r.fill("#555") })
         this.r.parent_node = this
    
-        draw.graph.nodes.push(this)
-
         this.allow_connection_to = (node) => {
             if (this.no_inputs_allowed) return false;
             if (this == node) return false;

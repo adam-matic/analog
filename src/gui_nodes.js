@@ -1,7 +1,7 @@
 import Port from './port.js'
 import ContextMenu from './context_menu.js'
 
-export default class Node {
+export default class GuiNode {
     constructor(options, position, output_name) { 
         options = options || {}
         position = position || {}

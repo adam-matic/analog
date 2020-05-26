@@ -1,4 +1,4 @@
-import Node from './nodes.js'
+import GuiNode from './gui_nodes.js'
 import Port from './port.js'
 import solver from './solver.js'
 import nodes from './node_defs.js'
@@ -39,7 +39,7 @@ function main() {
         btn.style = "width:80px; margin:8px;"
         btn.innerHTML = nodes[a].title
         btn.onclick = function(event) {
-            var node = new Node(nodes[a])
+            var node = new GuiNode(nodes[a])
             window.nodes.push(node);
         }
         toolbox_div.appendChild(btn)
@@ -54,7 +54,7 @@ function main() {
     draw.layer2 = draw.group()
     draw.layer3 = draw.group()
     
-    Node.prototype.draw = draw
+    GuiNode.prototype.draw = draw
     Port.prototype.draw = draw
 
 
@@ -124,7 +124,7 @@ function main() {
     }
     */
 
-    let tnode = new Node(nodes.time)
+    let tnode = new GuiNode(nodes.time)
     window.nodes.push(tnode)
 
     window.draw = draw
@@ -193,4 +193,34 @@ function main() {
 
 window.onload = main;
 
+/*
 
+const ComputerNode = (name) => {
+    // private?
+    let a = 5;
+    var b = 6;
+    let n = name;
+    let inputs = [];
+    return {
+        get inputs() {return inputs},
+        set inputs(x) { inputs=x},
+        step () { console.log(a, b, n, inputs, this) }
+    }
+}
+
+
+const SummerNode = (name, params) => {
+    const n = ComputerNode(name)
+    n.inputs = "inputs"
+    n.a = 4;
+    return Object.assign(n, params)
+}
+
+
+let p = SummerNode("sumnode", {e:4, t:5})
+console.log(p)
+p.step()
+
+console.log(p.a, p.inputs)
+
+*/

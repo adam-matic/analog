@@ -1,1 +1,1 @@
-# analog
+# analog computer simulator in javascript

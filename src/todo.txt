@@ -1,32 +1,33 @@
 todo
 
-
-
-- variable names, how to implement from start
-  - -   for node definition, create space for name, or generate "random"
-  - -   middle of the line when stretched or at output of node
-  - -   make it editable via context menu or direct edit
-
-
 maintaining a graph and a text version of the program
+ - graph manager?
+ - actions: add node, set position, set A connected to B, change port weight
+ - graph checks: can A connect to B?
+ - listeners to changes in graph?
+ - should I save the actions or just graph state??????
 
 
 port context menu: 1, -1, weight
 port color depending on weight
 constrain port location on the node edge
+- make connections always between centers?
 
-- generator graphical interface in context menu
-    - drag t1, t2, aplitude, etc..
+
+
+- generator graphical interface in the main node
+    - t1, t2, amplitude, etc.. can be changed by dragging or "scrubbing" :   || |  |  250  |  | ||
+  
 
 - plotting
   - simple line plots of var over time
-  - invisible connections between plot and variable names
+  - invisible connections between plot and variable names?
   - resizable
+  - test a few little plotting libraries, minimum possible!! just line plots and updating
 
 
 - run button
-- later: live run
-
+- live run
 
 --- GROUPING!!! very important. how to change graphics of elements when they 
    become a group;

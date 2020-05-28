@@ -1,1 +1,4 @@
-# analog computer simulator in javascript
+# Analog computer simulator in javascript
+
+
+Very early development

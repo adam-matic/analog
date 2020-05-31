@@ -13,23 +13,26 @@ export default class Port {
 
         this.circle.on("dragstart", e => {
             draw.layer0.add(this.circle)
+            this.circle.attr({"pointer-events":'none'})
             draw.portmove = true;
             draw.moved_port = this;
         })
         
-        this.circle.on("dragmove",  e => this.draw_line())
+        this.circle.on("dragmove",  e => this.draw_line_to_circle())
+
         this.circle.on("mouseover", e => this.circle.fill("#d00"))
         this.circle.on("mouseout",  e => this.circle.fill("#000"))
         
         this.circle.on("dragend", (e) => {
-            draw.layer2.add(this.circle)
+            //draw.layer2.add(this.circle)
             draw.portmove = false;
             draw.moved_port = null;
             if (this.parent_node.connected) {
-                this.allign_port_with_target() 
+                this.draw_line_to_target_node() 
             } else {
                 this.draw_home()
             }
+            this.circle.attr({"pointer-events": 'all'});
         })
 
         this.wire_line = draw.line()
@@ -37,7 +40,20 @@ export default class Port {
         draw.layer0.add(this.wire_line)
 
 
-        this.out_name_text = draw.text(parent_node.output_name).font({"weight": "bold", "size": "17", "stroke-width": 0.4}).fill("#000").stroke("#fff")
+        this.out_name_text = draw.group();
+        
+        this.out_name = draw.text(parent_node.output_name).font({"weight": "bold", "size": "17"}).fill("#000")
+        
+        let text_width = this.out_name.node.firstChild.getComputedTextLength();
+        let background = draw.rect()
+            .size(text_width + 10, 25)
+            .fill("#fff")
+            .attr({"fill-opacity":"0.9"})
+
+        this.out_name_text.add(background)
+        this.out_name_text.add(this.out_name)
+        
+        this.out_name.dmove(5)
 
         this.output_weight = 1.0
 
@@ -73,24 +89,66 @@ export default class Port {
         }
 
         this.circle.cx(ncx).cy(ncy)
-        this.draw_line()
+        this.draw_line_to_circle()
     }
 
     draw_circle_home () {
-
-        let home_x = this.parent_node.r.cx() + this.parent_node.r.width()/2 + 20 + this.out_name_text.node.firstChild.getComputedTextLength();
+        let text_width = this.out_name.node.firstChild.getComputedTextLength() 
+        let home_x = this.parent_node.r.cx() + this.parent_node.r.width()/2 + 30 + text_width;
         let home_y = this.parent_node.r.cy();
         this.circle.cx(home_x).cy(home_y);
     }
 
+
     draw_line () {
+        if (this.parent_node.connected) {
+            this.draw_line_to_target_node()
+        } else {
+            this.draw_line_to_circle()
+        }
+    }
+
+    draw_line_to_target_node () {
+        let a = this.parent_node;
+        let b = a.connected_to;
+        let [ax, ay] = [a.r.cx(), a.r.cy()]
+        let [bx, by] = [b.r.cx(), b.r.cy()]
+        
+        let w = b.r.width() / 2;
+        let h = b.r.height() / 2;
+        let lx = 0, ly=0;
+        
+
+        let angle = Math.atan2(ay-by, ax-bx);
+        let a1 = Math.atan2(-h, -w );
+        let a2 = Math.atan2(-h, +w );
+        let a3 = Math.atan2(h,  w );
+        let a4 = Math.atan2(h, -w );
+        
+        let c = Math.cos(angle)
+        let s = Math.sin(angle)
+        let t = Math.tan(angle) * (w/h)
+
+        if (angle > a1 && angle < a2 )      { /*console.log("top");*/    lx = bx - w/t; ly = by - h;}
+        else if (angle > a2 && angle < a3 ) { /*console.log("right");*/  lx = bx + w;   ly = by + h*t;}
+        else if (angle > a3 && angle < a4 ) { /*console.log("bottom");*/ lx = bx + w/t; ly = by + h;}
+        else                                { /*console.log("left"); */ lx = bx - w;   ly = by - h*t }
+        
+        //console.log(s, lx, ly)
+        let x = (bx + ax) / 2.0
+        let y = (by + ay) / 2.0
+
+        this.circle.cx(lx).cy(ly)
+        this.out_name_text.cx(x).cy(y)   
+        this.wire_line.plot(ax,ay,bx,by)
+    }
+
+
+
+    draw_line_to_circle () {
         let [ax, ay] = [this.parent_node.r.cx(), this.parent_node.r.cy()]
-        
-        
         let [bx, by] = [this.circle.cx(), this.circle.cy()]
         
-        this.wire_line.plot(ax, ay, bx, by)
-
         // find intersection of line with the rectangle
 
         let s = (ay - by)/(ax - bx)
@@ -108,11 +166,14 @@ export default class Port {
         let x = (bx + lx) / 2.0
         let y = (by + ly) / 2.0
         
+        this.wire_line.plot(ax, ay, bx, by)
         this.out_name_text.cx(x).cy(y)   
+    
     }
+
 
     draw_home() {
         this.draw_circle_home()
-        this.draw_line()
+        this.draw_line_to_circle()
     }
 }

@@ -57,7 +57,7 @@ function main() {
     GuiNode.prototype.draw = draw
     Port.prototype.draw = draw
 
-
+    /*
     draw.on("mouseup", e => {
         if (!draw.portmove) return;
         let n = draw.moved_port.parent_node;
@@ -76,7 +76,7 @@ function main() {
         n.port.draw_home()
 
     })
-
+*/
 
     draw.graph = {
         nodes:[], 

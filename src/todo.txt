@@ -2,16 +2,13 @@ todo
 
 maintaining a graph and a text version of the program
  - graph manager?
- - actions: add node, set position, set A connected to B, change port weight
+ - actions: add node, set position, set A connected to B, change port weight [requests, not commands from gui]
  - graph checks: can A connect to B?
  - listeners to changes in graph?
  - should I save the actions or just graph state??????
 
-
 port context menu: 1, -1, weight
 port color depending on weight
-constrain port location on the node edge
-- make connections always between centers?
 
 
 
@@ -34,3 +31,7 @@ constrain port location on the node edge
 
 
    
+done:
+
+- constrain port location on the node edge
+- make connections always between centers

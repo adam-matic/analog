@@ -1,14 +1,15 @@
+import ContextMenu from './context_menu.js'
+
 export default class Port {
     constructor(parent_node) {
         this.parent_node = parent_node;
         
-        let draw = this.draw
-        this.circle = draw.circle()
-            .size(15, 15)
-            .draggable( );
+        this.params = {weight: 1.0};
 
+        let draw = this.draw
+        
+        this.circle = draw.circle().size(15, 15).draggable( );
         this.circle.port = this;
-       
         draw.layer2.add(this.circle)
 
         this.circle.on("dragstart", e => {
@@ -17,9 +18,7 @@ export default class Port {
             draw.portmove = true;
             draw.moved_port = this;
         })
-        
         this.circle.on("dragmove",  e => this.draw_line_to_circle())
-
         this.circle.on("mouseover", e => this.circle.fill("#d00"))
         this.circle.on("mouseout",  e => this.circle.fill("#000"))
         
@@ -35,18 +34,21 @@ export default class Port {
             this.circle.attr({"pointer-events": 'all'});
         })
 
+        this.circle.on("contextmenu", (e) => new ContextMenu(e, this.params, this.update_weight))
+        this.update_weight = () => { console.log(this.params)};
+
         this.wire_line = draw.line()
         this.wire_line.stroke({width:3, color:"#888"})
         draw.layer0.add(this.wire_line)
 
-
         this.out_name_text = draw.group();
-        
         this.out_name = draw.text(parent_node.output_name).font({"weight": "bold", "size": "17"}).fill("#000")
-        
         let text_width = this.out_name.node.firstChild.getComputedTextLength();
-        let background = draw.rect()
-            .size(text_width + 10, 25)
+
+        
+        this.out_name_text.on("contextmenu", (e) => new ContextMenu(e, this.params, this.update_weight))
+
+        let background = draw.rect().size(text_width + 10, 22)
             .fill("#fff")
             .attr({"fill-opacity":"0.9"})
 
@@ -54,8 +56,6 @@ export default class Port {
         this.out_name_text.add(this.out_name)
         
         this.out_name.dmove(5)
-
-        this.output_weight = 1.0
 
         this.draw_home()
     }
@@ -114,8 +114,10 @@ export default class Port {
         let [ax, ay] = [a.r.cx(), a.r.cy()]
         let [bx, by] = [b.r.cx(), b.r.cy()]
         
-        let w = b.r.width() / 2;
-        let h = b.r.height() / 2;
+        let w = 3 + b.r.width() / 2;
+        let h = 3 + b.r.height() / 2;
+        
+
         let lx = 0, ly=0;
         
 
@@ -127,12 +129,12 @@ export default class Port {
         
         let c = Math.cos(angle)
         let s = Math.sin(angle)
-        let t = Math.tan(angle) * (w/h)
-
-        if (angle > a1 && angle < a2 )      { /*console.log("top");*/    lx = bx - w/t; ly = by - h;}
-        else if (angle > a2 && angle < a3 ) { /*console.log("right");*/  lx = bx + w;   ly = by + h*t;}
-        else if (angle > a3 && angle < a4 ) { /*console.log("bottom");*/ lx = bx + w/t; ly = by + h;}
-        else                                { /*console.log("left"); */ lx = bx - w;   ly = by - h*t }
+        let t = Math.tan(angle) 
+        
+        if (angle > a1 && angle < a2 )      { /*console.log("top");*/    lx = bx - h / t; ly = by - h;}
+        else if (angle > a2 && angle < a3 ) { /*console.log("right");*/  lx = bx + w;   ly = by + w*t;}
+        else if (angle > a3 && angle < a4 ) { /*console.log("bottom");*/ lx = bx + h/t; ly = by + h;}
+        else                                { /*console.log("left"); */  lx = bx - w;   ly = by - w*t }
         
         //console.log(s, lx, ly)
         let x = (bx + ax) / 2.0

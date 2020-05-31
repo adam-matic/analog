@@ -57,27 +57,6 @@ function main() {
     GuiNode.prototype.draw = draw
     Port.prototype.draw = draw
 
-    /*
-    draw.on("mouseup", e => {
-        if (!draw.portmove) return;
-        let n = draw.moved_port.parent_node;
-        if (e.target.instance.type=="rect")  { // port over node
-            let t = e.target.instance.parent_node
-            if (t.allow_connection_to(n)) {
-                n.remove_previous_connection()
-                n.connected = true;
-                n.connected_to = t;
-                t.input_connections.push( n )
-                return;
-            }
-        }
-        // port dropped over empty space or node did not allow connection
-        n.remove_previous_connection()
-        n.port.draw_home()
-
-    })
-*/
-
     draw.graph = {
         nodes:[], 
         edges:[],
@@ -107,30 +86,13 @@ function main() {
         return name_string;
     }
     
-    /*
-    let y0 = 20;
-    let x0 = 20
-    let wmax = 0;
-    
-    for (let n in nodes) {
-        let nn = new Node(nodes[n], {x:x0, y:y0})
-        window.nodes.push(nn);
-        wmax = Math.max(wmax, nn.r.width())
-        y0 += 1.3 * nn.r.height();
-        if (y0 > h*0.8) {
-            y0 = 20
-            x0 = x0 + 50 + wmax
-        }
-    }
-    */
+
 
     let tnode = new GuiNode(nodes.time)
     window.nodes.push(tnode)
 
     window.draw = draw
     
-
-
     window.onkeypress = function (e) {
     
         if (e.key == "Enter") {
@@ -145,7 +107,7 @@ function main() {
 
             for (let n of window.nodes) {
                 if (n.title == "time") continue;
-                let inputs =  n.input_connections.map((x) => [x.port.output_weight, x.output_name]  )
+                let inputs =  n.input_connections.map((x) => [x.port.params.weight, x.output_name]  )
                 let params = n.params;
                 let time = program_graph["time"].params
                 program_graph[n.output_name] = new n.computation(inputs, params, time)            
@@ -179,12 +141,12 @@ function main() {
                 title: "plot"
             }
 
-            this.console.log(results, data)
+            //this.console.log(results, data)
 
-            Plotly.newPlot("plot_div", data, layout)
+            Plotly.react("plot_div", data, layout)
 
             // this.console.log(results)
-            localStorage.setItem("mydata", JSON.stringify(program_graph));
+            // localStorage.setItem("mydata", JSON.stringify(program_graph));
         }
     }
 

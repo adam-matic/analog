@@ -1,159 +1,151 @@
-class ComputerNode {
+class ComputeNode {
     constructor (inputs = [], params = {}) {
         this.inputs = inputs;
         this.params = params;
 
-        this.state = params.init_value || 0;
-        this.next_state = this.state;
-        this.history = []; 
+        this.value = params.init_value || 0;
+        this.values = []; 
     }
-    step () {
 
+    step () {
+        this.next_value = value;
     }
 
     advance () {
-        this.history.push(this.state)
-        this.state = this.next_state
+        this.values.push(this.value)
+        this.value = this.next_value
+    }
+}
+
+
+class GeneratorNode {
+    constructor (params = {}, time) {
+        this.params = params.clone(); 
+        this.time = time;
+        this.generate()
+    }
+
+    generate () {
+        this.values = [];
+    }
+
+    step () {
+        this.counter += 1;
+    }
+
+    advance () {
+        this.value = this.values[this.counter]
     }
 }
 
 
 
-const nodes = {
+
+const OperationBlocks = {
     
     time : {
         title: "time",
         no_inputs_allowed: true,
         no_outputs: true,
         no_button: true,
-        params: { dt: 0.01, total: 10},
-        computation: class extends ComputerNode {
-            step () {   
-                this.next_state = this.state + this.params.dt;
-            }
-        }
+        params: { dt: 0.01, duration: 10},
+        computation: class extends GeneratorNode {
+            generate() {
+                this.counter = 0;
+                this.N = Math.round( this.duration / this.dt);
+                this.indexes =[...new Array(N).keys()]
+                this.values = this.indexes.map( i => i * this.dt )
+            }               
+        } 
     },
 
-    generator_const : {
-        title: "generator const", 
+    const : {
+        title: "const", 
         no_inputs_allowed : true,
         params: {value: 0},
-        computation: class extends ComputerNode {
-            constructor (inputs, params) {
-                super(inputs, params)
-                let const_value = this.params.value || 0;
-                this.state = const_value;
-                this.next_state = const_value;
+        computation: class extends GeneratorNode {
+            generate() {
+                this.counter = 0;
+                this.values = this.time.indexes.map( _ => this.params.value)
             }
-        }
-
+        }                
     },
 
-    generator_sin : {
-        title: "generator sin",
+    sine : {
+        title: "sine",
         no_inputs_allowed : true,
         params: {a: 1, f: 1 , p: 0},
-        computation: class extends ComputerNode {
-            constructor (inputs, params, globals) {
-                super(inputs, params)
-                
+        computation: class extends GeneratorNode {
+            generate() {
+                this.counter = 0;
                 let a = this.params.a;
                 let f = this.params.f;
-                let p = this.params.p;
-                let duration = globals.duration;
-                let dt = globals.dt;
-                let counter = 0;
-                let imax = Math.round( duration / dt);
-                this.ys = []
-        
-                for (let i = 0; i < imax; i++) {
-                    let y = a * Math.sin(i * dt * f * Math.PI * 2 + p);
-                    this.ys.push(y)
-                }
-                this.history = this.ys;
-            
-                this.step = () => {
-                    counter += 1; 
-                }
-        
-                this.advance = () => { 
-                    this.state = this.ys[counter]
-                }
+                let p = this.params.f;                
+                this.values = this.time.values.map(t =>  a * Math.sin(t * f * Math.PI * 2 + p));                
             }
-         }        
+        }  
      },
 
-    generator_pulse : {
-        title: "generator pulse",
+    pulse : {
+        title: "pulse",
         no_inputs_allowed : true,
         params: { t1: 1, t2:2, A: 1}, 
-        computation: class extends ComputerNode {
-            constructor (inputs, params, time) {
-                super(inputs, params)
+        computation: class extends GeneratorNode {
+            generate() {
                 let t1 = this.params.t1;
                 let t2 = this.params.t2;;
                 let A  = this.params.A;
-        
-                this.state = (t1 <= 0) ? A : 0;
-                
-                this.step = () => {
-                    let t = time.state;
-                    this.next_state = (t >= t1 && t < t2) ? A : 0;
-                }
+                this.values = this.time.values.map( t => t >= t1 && t < t2 ? A : 0 )                
             }
         }
     },         
 
-    generator_ramp : {
-        title: "generator ramp",
+    ramp : {
+        title: "ramp",
         no_inputs_allowed : true,
         params: { t1: 1, t2:2, A: 1},
-        computation : class extends ComputerNode {
-            constructor (inputs, params, time) {
-                super(inputs, params)
+        computation : class extends GeneratorNode {
+            generate () {
+                this.counter = 0;
                 let t1 = this.params.t1;
                 let t2 = this.params.t2;
-                let A = this.params.A;
+                let A  = this.params.A;
         
-                let on_time =  (t2 - t1)
-                let dy = (A / on_time) * time.dt
-                        
-                this.step = () => {
-                    let t = time.state;
-                    let inc = (t >= t1 && t < t2) ? dy : 0
-                    this.next_state = this.state + inc;
-                }
+                let ramp_duration =  (t2 - t1)
+                let dy = (A / ramp_duration) * this.time.dt
+                let increments = this.time.values.map ( t => t >= t1 && t < t2 ? dy : 0 )
+                this.values = increments.map((sum => value => sum += value)(0))
             }
         }
     },         
 
-    generator_random : {
-        title: "generator random",
+    random : {
+        title: "random",
         no_inputs_allowed : true,
-        params: { tc1: 0.1, tc2:0.2, tc3:0.3},
-        computation: class extends ComputerNode {
-            constructor (inputs, params, time) {
-                super(inputs, params)
-        
+        params: { tc1: 0.1, tc2:0.2, tc3:0.3, seed: 0 },
+        computation: class extends GeneratorNode {
+            generate () {        
                 if (this.params.seed) Math.random.seed(this.params.seed);
         
+                this.values = new Array(this.time.N)
+                this.counter = 0;        
                 let y = 0;
-                this.step = () => {
-                    y = y + (0.002 * (Math.random() * 1000 - 500)) * time.dt / this.params.tc1;
+                for (let i = 0; i < this.time.N; i ++) {
+                    y = y + (0.002 * (Math.random() * 1000 - 500)) * this.time.dt / this.params.tc1;
                     for (let tc of [this.params.tc2, this.params.tc3] ) {
-                        y = y + (y - this.state) * time.dt / tc;
+                        y = y + (y - this.value) * time.dt / tc;
                     }
-                    this.next_state = y;
-                }
+                    this.values [i] = y;
+                }            
             }
         }
     },
     
-    summer : {
+    add : {
         title: "add",
         params: {},
-        computation: class extends ComputerNode {
-            constructor (inputs, params, time) {
+        computation: class extends ComputeNode {
+            constructor (inputs, params) {
                 super(inputs, params)
                 this.step = () => {
                     let N = this.inputs.length
@@ -163,19 +155,19 @@ const nodes = {
                         let value  = inputs[i][2].state
                         sum = sum + weight * value 
                     }
-                    this.next_state = sum
+                    this.next_value = sum
                 }
             }
         }     
      },
     
 
-    comparator : {
+    compare : {
         title : "compare",
         max_inputs: 2,
         params: {},
-        computation: class extends ComputerNode {
-            constructor (inputs, params, time) {
+        computation: class extends ComputeNode {
+            constructor (inputs, params) {
                 super(inputs, params)
                 this.step = () => {
                     let N = inputs.length
@@ -185,19 +177,19 @@ const nodes = {
                         let value  = inputs[i][2].state
                         sum = sum + weight * value 
                     }
-                    this.next_state = sum
+                    this.next_value = sum
                 }
             }
         } 
     },
         
 
-    amplifier : {
-        title: "amplifier",
+    amplify : {
+        title: "amplify",
         max_inputs : 1,
         params: {init:0, K:100, tc: 0.1},
 
-        computation: class extends ComputerNode {
+        computation: class extends ComputeNode {
             constructor (inputs, params, time) {
                 super(inputs, params)
                 let dt = time.dt
@@ -206,24 +198,24 @@ const nodes = {
                 let limits = params.limits
         
                 this.step = () => {
-                    let s = this.state
+                    let s = this.value
                     if (!this.inputs[0]) return
                     let i = this.inputs[0][2].state
-                    this.next_state = s + (K * i - s) * (dt / tc)
+                    this.next_value = s + (K * i - s) * (dt / tc)
 
                     if (limits) {
-                        this.next_state = Math.max(this.next_state, limits.min)
-                        this.next_state = Math.min(this.next_state, limits.max)
+                        this.next_value = Math.max(this.next_value, limits.min)
+                        this.next_value = Math.min(this.next_value, limits.max)
                     }
                 }
             }
         }
     },
 
-    integrator: {
-        title: "integrator",
+    integrate: {
+        title: "integrate",
         params: {init:0},
-        computation: class Integrator extends ComputerNode {
+        computation: class Integrator extends ComputeNode {
             constructor (inputs, params, time) {
                 super(inputs, params)
                 let dt = time.dt
@@ -237,7 +229,7 @@ const nodes = {
                         let value  = inputs[i][2].state
                         sum = sum + weight * value 
                     }
-                    this.next_state = this.state + 0.5 * (this.old_input + sum) * dt
+                    this.next_value = this.value + 0.5 * (this.old_input + sum) * dt
                     this.old_input = sum
                 }
             }
@@ -246,7 +238,7 @@ const nodes = {
 
     multiply: {
         title: "mult",
-        computation:  class Multiply extends ComputerNode {
+        computation:  class Multiply extends ComputeNode {
             constructor (inputs, params, time) {
                 super(inputs, params)
                 this.step = () => {    
@@ -256,7 +248,7 @@ const nodes = {
                         let value  = inputs[i][2].state
                         mult = mult * value;
                     }
-                    this.next_state = mult;
+                    this.next_value = mult;
                 }
             }
         }
@@ -266,18 +258,18 @@ const nodes = {
         title: "delay",
         max_inputs: 1,
         params: {t: 0},
-        computation: class Delay extends ComputerNode {
+        computation: class Delay extends ComputeNode {
             constructor (inputs, params, time) {
                 super(inputs, params)
                 this.delay_time = params.t
                 this.delay_units = Math.round(this.delay_time / time.dt)
                 this.ys = new Array(this.delay_units)
-                this.ys.fill(this.state)
+                this.ys.fill(this.value)
                 this.step = () => {
                     if (!this.inputs[0]) return;
                     this.ys.push( this.inputs[0][2].state )
                     let N = this.ys.length
-                    this.next_state = this.ys [N - this.delay_units - 1]
+                    this.next_value = this.ys [N - this.delay_units - 1]
                 }
             }
 
@@ -289,7 +281,7 @@ const nodes = {
         title: "limit",
         max_inputs : 1,
         params: {max: 1, min:-1},
-        computation: class Limit extends ComputerNode {
+        computation: class Limit extends ComputeNode {
             constructor (inputs, params, time) {
                 super(inputs, params)
                 let max = params.max;
@@ -306,4 +298,4 @@ const nodes = {
 }
 
 
-export {nodes as default}
+export {OperationBlocks as default}

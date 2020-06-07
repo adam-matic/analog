@@ -1,8 +1,8 @@
 import GuiNode from './gui_nodes.js'
 import Port from './port.js'
 import solver from './solver.js'
-import nodes from './node_defs.js'
-//import LinePlot from './lineplot.js'
+import OperationBlocks from './operation_blocks.js'
+
 
 function main() {
     var w = 600, h = 600
@@ -33,7 +33,7 @@ function main() {
     
     window.nodes = []
 
-    for (let a in nodes) {
+    for (let a in OperationBlocks) {
         if (nodes[a].no_button) continue;
         let btn = document.createElement("button")
         btn.style = "width:80px; margin:8px;"
@@ -153,36 +153,83 @@ function main() {
 
 }
 
-window.onload = main;
 
-/*
 
-const ComputerNode = (name) => {
-    // private?
-    let a = 5;
-    var b = 6;
-    let n = name;
-    let inputs = [];
-    return {
-        get inputs() {return inputs},
-        set inputs(x) { inputs=x},
-        step () { console.log(a, b, n, inputs, this) }
+
+
+
+
+window.onload = main2;
+
+
+function load_program( filename ) {
+    return new Promise((resolve, reject) => {
+        var client = new XMLHttpRequest();
+        client.open('GET', filename);
+        client.onload = () => resolve(client.responseText);
+        client.onerror = () => reject(client.statusText)
+        client.send();  
+    })
+}
+
+
+function main2() {
+    load_program('programs/Fan and Duck 3b.txt')
+    .then(t => make_graph(t));
+}
+
+
+function parse(text, store) {
+    var lines = text.split(/\r?\n/)
+    
+    lines.forEach(x=> console.log(x))
+
+    
+    
+    
+    //console.log(nodes)
+    // make function   register_to_parser, function name, number of inputs, parameter names types?? min max etc
+
+
+    return {}
+}
+
+function make_graph(text_program) {
+    
+    const {createStore} = Redux;
+
+    const store = createStore( reducer )
+
+    function reducer (state = {}, action ) {
+        switch (action.type) {
+            case "addNode" : 
+                console.log("Adding node")
+                
+                let n = action.node_props
+                n.xy = n.xy || [0, 0]
+                state[action.node_props.title] = {...action.node_props};
+                return state
+            default:
+                console.log("type not recognized")
+                console.log(action, state)
+                return state
+        }
+        
     }
+    
+    store.subscribe ( () => console.log("any change of state")
+
+    )
+
+    const addTime = {type: "addNode", node_props : OperationBlocks.time }
+
+
+    store.dispatch(addTime)
+
+    store.dispatch({type: "what", node_props: "a"} )
+
+    
+    
+    //var graph = parse(text_program, store)
+    //console.log(graph)
 }
-
-
-const SummerNode = (name, params) => {
-    const n = ComputerNode(name)
-    n.inputs = "inputs"
-    n.a = 4;
-    return Object.assign(n, params)
-}
-
-
-let p = SummerNode("sumnode", {e:4, t:5})
-console.log(p)
-p.step()
-
-console.log(p.a, p.inputs)
-
-*/

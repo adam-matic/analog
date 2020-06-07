@@ -1,0 +1,5 @@
+title Fan and Duck
+time 6.0 0.01
+d generator ramp 0.0 6.0 1000.0
+vel amplifier 0 d 0.1 0.5
+plot t vel d

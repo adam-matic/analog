@@ -1,0 +1,12 @@
+
+title Fan and Duck
+time 6.0 0.01
+d generator ramp 0.0 6.0 1000.0
+o generator puls 2.0 4.0 -120.0
+sr const 50.0
+effect summator d 0.1 o 0.5  
+vel amplifier effect 0.0 1.0 0.5
+sp summator vel 1.0
+se comparator sr sp
+print sp sr se o d
+plot 1.0 1.0 1.0 1.0 0.1

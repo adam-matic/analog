@@ -7,7 +7,6 @@ maintaining a graph and a text version of the program
  - listeners to changes in graph?
  - should I save the actions or just graph state??????
 
-port context menu: 1, -1, weight
 port color depending on weight
 
 
@@ -35,3 +34,4 @@ done:
 
 - constrain port location on the node edge
 - make connections always between centers
+- port context menu: weight

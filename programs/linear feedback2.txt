@@ -1,0 +1,9 @@
+title = Linear feedback with delay
+t     = time T 8.0 dt 0.01
+qd    = sine 5 0.8 0
+sr    = pulse 2.0 6.0 40.0
+sp    = delay qc (t 0.05)
+se    = add sr -1 sp
+qo    = amplify se 0 900.0 80.0
+qc    = add qo qd
+plot sr qo qd qc sp

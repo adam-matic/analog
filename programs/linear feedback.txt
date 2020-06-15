@@ -1,0 +1,6 @@
+title Linear feedback factor with delay
+time 6 0.01
+a const 10
+b const 2
+c add a b a
+plot a b c

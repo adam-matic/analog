@@ -1,13 +1,13 @@
-title   = Fand and Duck
-t       = time (T 6.0) (dt 0.1) (xy 120 350)
-d       = ramp t1 0 t2 6 a 1000 (xy 550 120)
+title Fan and Duck
+t       = time (T 6.0) (dt 0.1) (x 120) (y 350)
+d       = ramp t1 0 t2 6 a 1000 (x 550) (y 120)
 sr      = const (value 50) 
-effect  = sum (0.1 d) (0.5 o)
-vel     = amplify (1.0 effect) (init 0) (K 0.5) (tc 0.5)
-sp      = sum (1.0 vel)
+effect  = add (0.1 d) (0.5 o)
+vel     = amplify (1.0 effect) (init 0) (K 0.5)
+sp      = add (1.0 vel)
 se      = compare sr sp
 o       = add 40 se
 showo   = limit (1 o) (min -110) (max 110)
 
 group vel sp se o
-plot (1 sp) sr se showo 0.1 d (xy 500 600)
+plot (1 sp) sr se showo 0.1 d x 500 y 600

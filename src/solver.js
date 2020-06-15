@@ -8,12 +8,8 @@ export default function solver (program_graph) {
     
 
     for (let i = 0; i < total_steps; i++) {
-        for (let el in program_graph) {
-            let n = program_graph[el];  
-            n.step()
-            n.advance()
-        }
-
+        for (let el in program_graph) program_graph[el].step() 
+        for (let el in program_graph) program_graph[el].advance() 
     }
 
     let results = {};

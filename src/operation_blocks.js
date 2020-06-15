@@ -1,7 +1,8 @@
 class ComputeNode {
-    constructor (inputs = [], params = {}) {
+    constructor (inputs = [], params = {}, time) {
         this.inputs = inputs;
         this.params = params;
+        this.time = time;
 
         this.value = params.init_value || 0;
         this.values = []; 
@@ -19,10 +20,13 @@ class ComputeNode {
 
 
 class GeneratorNode {
-    constructor (params = {}, time) {
-        this.params = params.clone(); 
+    constructor (inputs = [], params = {}, time) {
+        this.inputs = inputs;
+        this.params = {...params}
         this.time = time;
         this.generate()
+        this.counter = 0;
+        this.value = this.values[0]
     }
 
     generate () {
@@ -48,13 +52,15 @@ const OperationBlocks = {
         no_inputs_allowed: true,
         no_outputs: true,
         no_button: true,
-        params: { dt: 0.01, duration: 10},
+        params: { T: 10, dt: 0.01},
         computation: class extends GeneratorNode {
             generate() {
                 this.counter = 0;
-                this.N = Math.round( this.duration / this.dt);
-                this.indexes =[...new Array(N).keys()]
-                this.values = this.indexes.map( i => i * this.dt )
+                this.dt = this.params.dt;
+                this.T = this.params.T;
+                this.N = Math.round( this.params.T / this.params.dt);
+                this.indexes =[...new Array(this.N).keys()]
+                this.values = this.indexes.map( i => i * this.params.dt )
             }               
         } 
     },
@@ -95,7 +101,7 @@ const OperationBlocks = {
                 let t1 = this.params.t1;
                 let t2 = this.params.t2;;
                 let A  = this.params.A;
-                this.values = this.time.values.map( t => t >= t1 && t < t2 ? A : 0 )                
+                this.values = this.time.values.map( t => t >= t1 && t < t2 ? A : 0 )     
             }
         }
     },         
@@ -107,6 +113,7 @@ const OperationBlocks = {
         computation : class extends GeneratorNode {
             generate () {
                 this.counter = 0;
+                
                 let t1 = this.params.t1;
                 let t2 = this.params.t2;
                 let A  = this.params.A;
@@ -120,6 +127,8 @@ const OperationBlocks = {
     },         
 
     random : {
+        /* search for seedable random here: */
+        /* http://davidbau.com/archives/2010/01/30/random_seeds_coded_hints_and_quintillions.html */
         title: "random",
         no_inputs_allowed : true,
         params: { tc1: 0.1, tc2:0.2, tc3:0.3, seed: 0 },
@@ -127,13 +136,13 @@ const OperationBlocks = {
             generate () {        
                 if (this.params.seed) Math.random.seed(this.params.seed);
         
-                this.values = new Array(this.time.N)
+                this.values = new Array(this.time.N).fill(0)
                 this.counter = 0;        
                 let y = 0;
-                for (let i = 0; i < this.time.N; i ++) {
+                for (let i = 1; i < this.time.N; i ++) {
                     y = y + (0.002 * (Math.random() * 1000 - 500)) * this.time.dt / this.params.tc1;
                     for (let tc of [this.params.tc2, this.params.tc3] ) {
-                        y = y + (y - this.value) * time.dt / tc;
+                        y = y + (y - this.values[i-1]) * this.time.dt / tc;
                     }
                     this.values [i] = y;
                 }            
@@ -145,44 +154,21 @@ const OperationBlocks = {
         title: "add",
         params: {},
         computation: class extends ComputeNode {
-            constructor (inputs, params) {
-                super(inputs, params)
-                this.step = () => {
+                step () {
                     let N = this.inputs.length
                     let sum = 0;
                     for (let i = 0; i < N; i++) {
-                        let weight = inputs[i][0];
-                        let value  = inputs[i][2].state
+                        let weight = this.inputs[i][0];
+                        let value  = this.inputs[i][2].value
                         sum = sum + weight * value 
                     }
+                    
                     this.next_value = sum
                 }
-            }
+            
         }     
      },
     
-
-    compare : {
-        title : "compare",
-        max_inputs: 2,
-        params: {},
-        computation: class extends ComputeNode {
-            constructor (inputs, params) {
-                super(inputs, params)
-                this.step = () => {
-                    let N = inputs.length
-                    let sum = 0;
-                    for (let i = 0; i < N; i++) {
-                        let weight = inputs[i][0];
-                        let value  = inputs[i][2].state
-                        sum = sum + weight * value 
-                    }
-                    this.next_value = sum
-                }
-            }
-        } 
-    },
-        
 
     amplify : {
         title: "amplify",
@@ -190,24 +176,14 @@ const OperationBlocks = {
         params: {init:0, K:100, tc: 0.1},
 
         computation: class extends ComputeNode {
-            constructor (inputs, params, time) {
-                super(inputs, params)
-                let dt = time.dt
-                let K = params.K
-                let tc = params.tc
-                let limits = params.limits
-        
-                this.step = () => {
-                    let s = this.value
-                    if (!this.inputs[0]) return
-                    let i = this.inputs[0][2].state
-                    this.next_value = s + (K * i - s) * (dt / tc)
-
-                    if (limits) {
-                        this.next_value = Math.max(this.next_value, limits.min)
-                        this.next_value = Math.min(this.next_value, limits.max)
-                    }
-                }
+            step  () {
+                let s = this.value
+                if (!this.inputs[0]) return
+                let i = this.inputs[0][2].value
+                let K = this.params.K
+                let dt = this.time.dt;
+                let tc = this.params.tc;
+                this.next_value = s + (K * i - s) * (dt / tc)
             }
         }
     },
@@ -226,7 +202,7 @@ const OperationBlocks = {
                     let sum = 0;
                     for (let i = 0; i < N; i++) {
                         let weight = inputs[i][0];
-                        let value  = inputs[i][2].state
+                        let value  = inputs[i][2].value
                         sum = sum + weight * value 
                     }
                     this.next_value = this.value + 0.5 * (this.old_input + sum) * dt
@@ -245,7 +221,7 @@ const OperationBlocks = {
                     let N = inputs.length
                     let mult = 0;
                     for (let i = 0; i < N; i++) {
-                        let value  = inputs[i][2].state
+                        let value  = inputs[i][2].value
                         mult = mult * value;
                     }
                     this.next_value = mult;
@@ -267,7 +243,7 @@ const OperationBlocks = {
                 this.ys.fill(this.value)
                 this.step = () => {
                     if (!this.inputs[0]) return;
-                    this.ys.push( this.inputs[0][2].state )
+                    this.ys.push( this.inputs[0][2].value )
                     let N = this.ys.length
                     this.next_value = this.ys [N - this.delay_units - 1]
                 }
@@ -289,7 +265,7 @@ const OperationBlocks = {
 
                 this.step = () => {
                     if (!this.inputs[0]) return;
-                    let x = this.inputs[0][2].state
+                    let x = this.inputs[0][2].value
                     this.next_stae = (x < min) ? min : (x > max) ? max : x;
                 }
             }

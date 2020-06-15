@@ -156,10 +156,74 @@ function main() {
 
 
 
+function ParameterStore (param = {init, min, max}, listeners = []) {
+        
+    self = { 
+        val : param.val  ||   0, 
+        min : param.min  || -10,      
+        max : param.max  ||  10,
+
+        listeners : listeners
+    }
+
+    self.subscribe = ( listener ) => self.listeners.push( listener );
+        
+    self.set = ( new_val ) => {
+        self.val = new_val > self.max ? self.max 
+                 : new_val < self.min ? self.min
+                 : new_val;
+        
+        self.listeners.forEach(f =>  f.update(self.val))
+    }
+
+    self.set (self.val)
+    return self
+  }
+
 
 
 
 window.onload = main2;
+
+const parastor = function () {
+
+   
+
+    
+      let p = new ParameterStore({val:0, min:-10, max:102})
+      
+
+      let divs = []
+      for (let i = 0; i < 5; i++)  {
+        divs.push(document.createElement("div"))
+        divs[i].innerHTML = "0"
+        p.add( divs[i] )
+        document.body.appendChild(divs[i])
+      }
+
+      divs[0].update = (x) => divs[0].innerHTML = `param value: ${x}`
+      divs[1].update = (x) => divs[1].innerHTML = (new Array(x).fill("x")).toString()
+      divs[2].update = (x) => divs[2].innerHTML = (new Array(x).fill(",")).toString()
+      divs[3].update = (x) => divs[3].innerHTML = (new Array(x).fill(".")).toString()
+      divs[4].update = (x) => divs[4].innerHTML = (new Array(x).fill(".")).toString()
+    
+
+      p.set(1)
+      p.set(2)
+      window.p = p;
+
+
+      window.addEventListener("mousemove", (e) => {
+          p.set(Math.ceil(e.clientY / 10))
+      })
+    
+
+}
+
+
+
+
+
 
 
 function load_program( filename ) {
@@ -174,60 +238,223 @@ function load_program( filename ) {
 
 
 function main2() {
-    load_program('programs/Fan and Duck 3b.txt')
+    load_program('programs/linear feedback2.txt')
     .then(t => make_graph(t));
 }
 
 
 function parse(text, store) {
-    var lines = text.split(/\r?\n/)
+    let lines = text.split(/\r?\n/) // split by newline
+                .filter(x => x.length != 0);  // remove empty lines
     
-    lines.forEach(x=> console.log(x))
-
-    
-    
-    
-    //console.log(nodes)
-    // make function   register_to_parser, function name, number of inputs, parameter names types?? min max etc
 
 
-    return {}
+    let graph = {
+
+    }
+    
+    let plots = []
+    let groups = []
+    let title = ""
+    
+    
+    let special = ["title", "plot", "time", "group"] // todo : register specials and functions
+    let functions = Object.keys(OperationBlocks)
+
+    let names = [];
+
+    let first_pass = []
+
+    
+    let inputs_and_params = function (func, args) {
+        
+        let p = OperationBlocks[func] ? OperationBlocks[func].params : {};
+        let param_names = p ? Object.keys(p) : []; 
+
+
+        let inputs = [];
+        let params = {};
+
+        let gui_param_names = ["x", "y"]
+
+        let arg_list = args.replace(/[()\s+]+/g, " ").trim().split(" ")  // remove parentheses and spaces
+        
+        let w = 1.0;
+
+        for (let i = 0; i < arg_list.length; i++) {
+            let x = arg_list[i];
+            if (!isNaN(x)) {                
+                if ( i < (arg_list.length-1) && names.includes(arg_list[i+1]) ) {
+                    w = parseFloat(x);
+                    inputs.push([w, arg_list[i+1]])
+                    i = i + 1; 
+                } else {
+                    params[param_names[0]] = parseFloat(x)
+                    param_names = param_names.slice(1)
+                }
+            }
+            else if (names.includes(x)) {
+                inputs.push([w, x])
+                w = 1.0
+            }
+            else if (param_names.includes(x)) {
+                let v = parseFloat(arg_list[++i]);
+                params[x] = v
+            }
+            else if (gui_param_names.includes(x)) {
+                let v = parseFloat(arg_list[++i]);
+                params[x] = v
+            }
+
+
+        }
+
+        params = {...p, ...params}
+        return { func, inputs, params }        
+    }
+
+    
+    lines.forEach(line => {
+        //let line1 = line.replace(/\s{2,}/g, ' ') // remove double spaces
+        // console.log(line1)
+        let comment = line.indexOf("#");
+
+        let no_comment = line.slice(0, comment >= 0 ? comment: undefined)
+
+        let trimmed = no_comment.trim();
+        if (trimmed.length == 0) return;
+
+        let fwi = trimmed.search(/[ =]+/)
+
+        let first = trimmed.slice(0, fwi)  // take the first word 
+        let rest =  trimmed.slice(fwi).replace(/[=\"]/g, ' ').trim() // take the rest
+
+        if (!special.includes(first)) names.push(first)
+
+        first_pass.push([first, rest])
+    })
+
+    
+    first_pass.forEach( ([first, rest]) => {
+        if (special.includes(first)) {
+
+            if (first == "title") {
+                title = rest;
+            } else if (first == "time") {
+                graph["t"] = inputs_and_params("time", rest)
+            }
+            else if (first == "plot") {
+                plots.push (inputs_and_params("plot", rest).inputs)
+            }
+            else if (first == "group") {
+                groups.push(rest.split(" "))
+            }
+        } 
+        else {
+            let fi = rest.search(/[ (]+/)
+            let func = rest.slice(0, fi)
+            let args = rest.slice(fi+1)
+            graph[first] = inputs_and_params(func, args);
+        }
+    })
+            
+
+    
+
+    //console.log(title)
+    // console.log(names)
+    console.log("graph", graph)
+    //console.log(plots)
+    //console.log(groups)
+
+    
+    let compute_graph = {};
+    let t0 = performance.now()
+
+    compute_graph.time = new OperationBlocks["time"].computation([], graph.t.params)
+
+    for (let el in graph ) {
+        if (el == "t") continue;
+        
+        let n = graph[el];
+        compute_graph[el] = new OperationBlocks[n.func].computation(n.inputs, n.params, compute_graph.time)
+
+        if (compute_graph[el].generate) {
+            compute_graph[el].generate()
+        }
+    }
+
+    let t1 = performance.now()
+
+    for (let el in compute_graph) {
+        for (let i = 0; i < compute_graph[el].inputs.length; i++) {
+            let name = compute_graph[el].inputs[i][1];
+            compute_graph[el].inputs[i].push( compute_graph[name])
+        }
+    } 
+    
+    
+    let {T, dt} = compute_graph.time.params;
+    let total_steps = Math.round(T / dt)
+
+    console.log(total_steps)
+    
+    for (let i = 0; i < total_steps; i++) {
+        for (let el in compute_graph) compute_graph[el].step();
+        for (let el in compute_graph) compute_graph[el].advance();
+    }
+
+    let t2 = performance.now()
+
+    console.log("compute", compute_graph)
+
+    let data = [];
+
+    //console.log("p", plots[0])
+    for (let [w, r] of plots[0]) {
+        let line = {
+            x : compute_graph.time.values,
+            y : compute_graph[r].values.map( x => x * w) ,
+            mode: 'lines',
+            name: r
+        };
+        data.push(line)
+    }
+
+    //this.console.log(results, data)
+
+ 
+    var div1 = document.getElementById("div1")
+    
+    //var graph_text = document.createTextNode("nada")
+    //div1.appendChild(graph_text)
+
+    var plot_div = document.createElement("div")
+    var t_attrs = {id: "plot_div", style:"float:left; border:1px solid black; width:800px; height:300px;"}
+    for (let a in t_attrs) plot_div.setAttribute(a, t_attrs[a])
+    div1.appendChild(plot_div)
+
+    Plotly.react("plot_div", data, {title})
+
+    //console.log(data)
+
+    let t3 = performance.now()
+
+    console.log("compute: ", t2 - t0, "ms, plot:", t3-t2, "ms" )
+
 }
 
 function make_graph(text_program) {
     
-    const {createStore} = Redux;
-
-    const store = createStore( reducer )
-
-    function reducer (state = {}, action ) {
-        switch (action.type) {
-            case "addNode" : 
-                console.log("Adding node")
-                
-                let n = action.node_props
-                n.xy = n.xy || [0, 0]
-                state[action.node_props.title] = {...action.node_props};
-                return state
-            default:
-                console.log("type not recognized")
-                console.log(action, state)
-                return state
-        }
-        
-    }
     
-    store.subscribe ( () => console.log("any change of state")
+    parse(text_program)
 
-    )
-
+    let graph = {}
+    
     const addTime = {type: "addNode", node_props : OperationBlocks.time }
 
 
-    store.dispatch(addTime)
-
-    store.dispatch({type: "what", node_props: "a"} )
-
+    
     
     
     //var graph = parse(text_program, store)
